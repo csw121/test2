@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>사진 업로드 메모 게시판</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f7fb;
+        margin: 0;
+        padding: 20px;
+      }
+      .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        margin-bottom: 30px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 100px;
+        padding: 12px;
+        border: 1px solid #d9dfe8;
+        border-radius: 8px;
+        resize: vertical;
+      }
+      input[type="file"] {
+        border: 1px solid #d9dfe8;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      button {
+        background: #2563eb;
+        color: white;
+        border: none;
+        padding: 12px 18px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: bold;
+      }
+      .memo-list {
+        display: grid;
+        gap: 16px;
+      }
+      .memo-item {
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 16px;
+        background: #fafafa;
+      }
+      .memo-image {
+        max-width: 100%;
+        border-radius: 8px;
+        margin-top: 12px;
+      }
+      .timestamp {
+        color: #6b7280;
+        font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>사진 업로드 메모 게시판</h1>
+
+      <form id="memoForm" enctype="multipart/form-data">
+        <textarea id="content" name="content" placeholder="오늘의 메모를 입력하세요..."></textarea>
+        <input id="image" name="image" type="file" accept="image/*" />
+        <button type="submit">메모 저장</button>
+      </form>
+
+      <div id="memoList" class="memo-list"></div>
+    </div>
+
+    <script>
+      const API_BASE = 'http://localhost:8000';
+
+      async function loadMemos() {
+        const response = await fetch(API_BASE + '/api/memos');
+        const data = await response.json();
+        const memoList = document.getElementById('memoList');
+
+        if (!data.memos || data.memos.length === 0) {
+          memoList.innerHTML = '<p>작성된 메모가 없습니다.</p>';
+          return;
+        }
+
+        memoList.innerHTML = data.memos.map(memo => `
+          <div class="memo-item">
+            <div>${memo.content}</div>
+            <div class="timestamp">${memo.created_at}</div>
+            ${memo.image_path ? `<img class="memo-image" src="${API_BASE}${memo.image_path}" alt="memo image" />` : ''}
+          </div>
+        `).join('');
+      }
+
+      document.getElementById('memoForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        const form = event.target;
+        const formData = new FormData(form);
+
+        const response = await fetch(API_BASE + '/api/memos', {
+          method: 'POST',
+          body: formData,
+        });
+
+        const result = await response.json();
+        if (response.ok) {
+          form.reset();
+          loadMemos();
+        } else {
+          alert(result.detail || '업로드 실패');
+        }
+      });
+
+      loadMemos();
+    </script>
+  </body>
+</html>
